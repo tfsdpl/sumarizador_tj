@@ -2,6 +2,7 @@ from transformers import BartTokenizer, BartForConditionalGeneration
 from transformers import MarianMTModel, MarianTokenizer
 import numpy as np
 from transformers import MarianMTModel, MarianTokenizer
+import re
 
 def traduzir_pt_en(texto):
     model_name = "Helsinki-NLP/opus-mt-mul-en"
@@ -35,6 +36,20 @@ def sumarizador(text):
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return summary
 
+def remover_parenteses(texto):
+    padrao = r'\([^()]*\)'
+    while re.search(padrao, texto):
+        texto = re.sub(padrao, '', texto)
+    return texto
+
+def ajustar_parenteses(frase):
+    if '(' in frase and ')' not in frase[frase.index('('):]:
+        return frase[:frase.index('(')]
+    elif ')' in frase and '(' not in frase[:frase.index(')')]:
+        return frase[frase.index(')')+1:]
+    return frase
+
+
 def sentence_score(texto):
     model_name = "facebook/bart-large-cnn"
     tokenizer = BartTokenizer.from_pretrained(model_name)
@@ -51,6 +66,14 @@ def sentence_score(texto):
     normalized_scores = [(2 * (score - min_score) / (max_score - min_score)) - 1 for score in sentence_scores]
 
     for idx, (sentenca, score) in enumerate(zip(sentencas, normalized_scores)):
-        print(f"{idx + 1}: {sentenca.strip()} - Score : {score}")
+        if len(sentenca.split()) < 2 or score < 0.01:
+            continue
+
+        padrao = r'\([^()]*\)'
+        # while re.search(padrao, sentenca):
+        #     frase = re.sub(padrao, '', frase)
+
+        print(ajustar_parenteses(remover_parenteses(sentenca.strip())))
+        #print(f"{idx + 1}: {sentenca.strip()} - Score : {score}")
 
 
